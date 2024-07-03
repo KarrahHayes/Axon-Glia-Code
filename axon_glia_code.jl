@@ -78,7 +78,8 @@ axonradius_pixels = sqrt.(axonarea_pixels./pi)
 axonCOM_x = mean.(axonxcoord)
 axonCOM_y = mean.(axonycoord)
 axoncircumference_nm = 5.102 .* axoncircumference_pixels
-axonroundness = (4 * pi .* axonarea_nm)./(axoncircumference_nm .^2)
+axoncircumference_um = axoncircumference_nm./1000
+axonroundness = (4 * pi .* axonarea_um)./(axoncircumference_um .^2)
 #area of glia and axons
 gliaarea_pixels = []
 for i in 1:length(gliaxcoord)
@@ -119,13 +120,19 @@ mitocount = zeros(length(splitlines))
 for (i,line) in enumerate(splitlines)
     mitocount[i] = parse(Float64,split(line[2], " points")[1])
 end
-mx = log10.(axoncircumference_nm)
-my = log10.(mitocount)
+mitox_ind = []
+for i = 1:length(axoncircumference_um)
+    if (axoncircumference_um[i] ./ (2*pi)) > 0.5
+        push!(mitox_ind, i)
+    end
+end
+mx = log10.(axoncircumference_um[mitox_ind])
+my = log10.(mitocount[mitox_ind])
 findinf = isfinite.(my)
 purged_my = my[findinf]
 purged_mx = mx[findinf]
 m = Figure()
-axm = Axis(m[1,1], xlabel = "Log of Axon Circumference (nm)", ylabel = "Log of Number of Mitochondria", title = "Axon Size vs. Mitochondria")
+axm = Axis(m[1,1], xlabel = "Log of Axon Circumference (um)", ylabel = "Log of Number of Mitochondria", title = "Axon Size vs. Mitochondria")
 scatter!(axm, purged_mx, purged_my, color = :orange)
 fit_line!(axm, purged_mx, purged_my)
 m
