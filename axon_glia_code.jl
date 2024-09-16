@@ -21,7 +21,7 @@ function fit_line!(ax, x, y)
 end
 
 #populating coordinates of axons and glia into dictionary
-coordlines = readlines("/Users/karrahhayes/Desktop/sample_info.txt")
+coordlines = readlines("/Users/karrahhayes/Desktop/Research/sample_info.txt")
 objectindices = findall(occursin.("OBJECT", coordlines))
 objectnames = coordlines[findall(occursin.("OBJECT", coordlines)) .+ 1] 
 output_dict = Dict()
@@ -93,10 +93,17 @@ gliaradius_pixels = sqrt.(gliaarea_pixels./pi)
 gliaCOM_x = mean.(gliaxcoord)
 gliaCOM_y = mean.(gliaycoord)
 
-#distribution of axon areas
+#distribution of axon radii
+update_theme!(fontsize = 35)
+r = Figure()
+minval,  maxval = extrema(axonradius_um)
+axr = Axis(r[1,1], xlabel = "Axon Radius (um)", title = "Axon Size", ylabel = "Probability", xscale = log10)
+hist!(axr, axonradius_um, color = RGBf(0.196, 0.553, 0.753), bins = exp.(LinRange(log(minval), log(maxval), 80)), normalization = :probability)
+r 
+
 n = Figure()
 minval,  maxval = extrema(axonarea_um)
-axn = Axis(n[1,1], xlabel = "Axon Area (um^2)", title = "Sampling Axon Area (n=273)", xscale = log10)
+axn = Axis(n[1,1], xlabel = "Axon Area (um^2)", title = "Axon Area", ylabel = "Probability", xscale = log10)
 hist!(axn, axonarea_um, color = :blue, bins = exp.(LinRange(log(minval), log(maxval), 80)), normalization = :probability)
 #Cm must be entered in F/m^2, Rm in ohm-m^2, and Ra in ohm-m
 cv(Cm, Rm, Ra, axonradius_m) = (sqrt.((Rm .* axonradius_m)./(2 .* Ra)))./(Cm .* Rm)
@@ -108,21 +115,26 @@ n
 
 #axon circularity
 c = Figure()
-axc = Axis(c[1,1], xlabel = "Log of Axon Radius (um)", ylabel = "Axon Circularity", title = "Axon Size vs. Axon Circularity", xscale = log10)
+axc = Axis(c[1,1], xlabel = "Log of Axon Radius (um)", ylabel = "Axon Circularity", title = "Axon Size vs. Axon Circularity")
 ylims!(axc, (0,1))
-scatter!(axc, axonradius_um, axonroundness, color = :red)
+scatter!(axc, log10.(axonradius_um), axonroundness, color = :red)
 c
 
 #mitochondria count
-mitolines = readlines("/Users/karrahhayes/Desktop/mitochondria_sample.txt")
+mitolines = readlines("/Users/karrahhayes/Desktop/Research/mitochondria_sample.txt")
 splitlines = split.(mitolines[contains.(mitolines, "CONTOUR")], "0  ")
 mitocount = zeros(length(splitlines))
 for (i,line) in enumerate(splitlines)
     mitocount[i] = parse(Float64,split(line[2], " points")[1])
 end
 mitox_ind = []
-for i = 1:length(axoncircumference_um)
+#= for i = 1:length(axoncircumference_um)
     if (axoncircumference_um[i] ./ (2*pi)) > 0.5
+        push!(mitox_ind, i)
+    end
+end =#
+for i = 1:length(mitocount)
+    if mitocount[i] >= 2
         push!(mitox_ind, i)
     end
 end
@@ -195,10 +207,11 @@ for i = 1:length(ggx)
 end
 gx = ggx[g_ind]
 gy = log10.(gliathickness_um)[g_ind]
+ggy = log10.(gliathickness_um)
 g = Figure()
 axg = Axis(g[1,1], xlabel = "Log of Axon Radius (um)", ylabel = "Log of Glia Thickness (um)", title = "Relationship Between Axon Size and Surrounding Glia Thickness")
-scatter!(axg, gx, gy)
-fit_line!(axg, gx, gy)
+scatter!(axg, ggx, ggy, color = :green)
+#=fit_line!(axg, ggx, ggy)
 g 
 #idk why but cant get coeffs when within function so this is to access values 
 df = DataFrame(gx=gx, gy=gy)
@@ -213,13 +226,13 @@ gliacoeffs = DataFrame(coeftable(modd))
 glia_correl_coeff = cor(gx, gy)
 glia_slope = gliacoeffs[2, 2]
 gliaslope_CI = glia_slope - gliacoeffs[2, 6]
-glia_yint = gliacoeffs[1, 2]
+glia_yint = gliacoeffs[1, 2] =#
 
 #distribution of axon positions
 p = Figure()
 xmin, xmax = extrema(axonCOM_x)
 ymin, ymax = extrema(axonCOM_y)
-axp = Axis(p[1,1])
+axp = Axis(p[1,1], title = "Axon Positions", xlabel = "X-Coordinate (px)", ylabel = "Y-Coordinate (px)")
 scatter!(axp, axonCOM_x, axonCOM_y, markersize = axonradius_pixels.*2, markerspace = :data, color = axonradius_pixels)
 p
 
