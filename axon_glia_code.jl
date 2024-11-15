@@ -20,6 +20,49 @@ function fit_line!(ax, x, y)
     lines!(ax, df.x, pred.prediction, color=:gray, linewidth=7)
 end
 
+function read_axon_file(filepath)
+    coordlines = readlines(filepath)
+    start_lines = findall(occursin.("\t\tx\ty\tz", coordlines))
+    end_lines = findall(occursin.("\t\tClosed/Open length", coordlines))
+    axonxcoord, axonycoord = [], []
+    for i in eachindex(start_lines)
+        coordinates = split.(coordlines[start_lines[i]:end_lines[i]], "\t")
+        notextcoordinates = coordinates[2:end-1]
+        thisconx = Float64[]
+        thiscony = Float64[]
+        for line in notextcoordinates
+            push!(thisconx, parse.(Float64, line[3]))
+            push!(thiscony, parse.(Float64, line[4]))
+        end  
+        push!(axonxcoord, thisconx)
+        push!(axonycoord, thiscony)
+    end
+    return axonxcoord, axonycoord
+end
+xcoord1, ycoord1 = read_axon_file("/Users/karrahhayes/Desktop/Research/pt.1_large_axons.txt")
+xcoord2, ycoord2 = read_axon_file("/Users/karrahhayes/Desktop/Research/pt.2_large_axons.txt")
+#for coord1
+axonarea_pixels1 = []
+for i in 1:length(xcoord1)
+    A = 0.5 * abs(sum((ycoord1[i][j] + ycoord1[i][j+1]) * (xcoord1[i][j] - xcoord1[i][j+1]) for j in 1:length(xcoord1[i])-1))
+    push!(axonarea_pixels1, A)
+end
+axonarea_nm1 = 13.4441 * 13.4441 .* axonarea_pixels1
+axonarea_um1 = axonarea_nm1./1e6
+#for coord2
+axonarea_pixels2 = []
+for i in 1:length(xcoord2)
+    A = 0.5 * abs(sum((ycoord2[i][j] + ycoord2[i][j+1]) * (xcoord2[i][j] - xcoord2[i][j+1]) for j in 1:length(xcoord2[i])-1))
+    push!(axonarea_pixels2, A)
+end
+axonarea_nm2 = 24.8963 * 24.8963 .* axonarea_pixels2
+axonarea_um2 = axonarea_nm2./1e6
+allaxonarea_um = append!(axonarea_um1, axonarea_um2)
+allaxonradii_um = sqrt.(largeaxonarea_um./pi)
+allaxondiameter_um = (2 .* allaxonradii_um)
+# large axons classified as having diameter above 10 um (or like very close to 10)
+largeaxondiameter_um = allaxondiameter_um[allaxondiameter_um .> 9.5]
+#=
 #populating coordinates of axons and glia into dictionary
 coordlines = readlines("/Users/karrahhayes/Desktop/Research/sample_info.txt")
 objectindices = findall(occursin.("OBJECT", coordlines))
@@ -247,3 +290,4 @@ for cv in range(0.1, 10, 6)
 end
 xlims!(axt, (0, nothing))
 t
+=#
