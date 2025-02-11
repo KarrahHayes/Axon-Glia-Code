@@ -2,6 +2,7 @@ using GLMakie
 using GLM
 using DataFrames
 using Statistics
+using HypothesisTests
 
 function add_intercept_column(x::AbstractVector{T}) where {T}
     mat = similar(x, float(T), (length(x), 2))
@@ -251,8 +252,24 @@ locustyint = coef(locustmodel)[1]
 estdiameterfromlocust = 10 .^((log10.(allmothCV_madepositive) .- locustyint) ./ 0.7)
 estCVfromlocust = (10 .^ roachyint) .* (largerthan10um .^ 0.7)
 ##
+# comparing whether estimated CVs could be produced by measured diameters and vice versa using Kolmogorov-Smirnov (KS) test
+usingdiameter = ApproximateTwoSampleKSTest(largerthan10um, estdiameterfromroach)
+usingCV = ApproximateTwoSampleKSTest(allmothCV_madepositive, estCVfromroach)
 
-
+myelinornot = Figure()
+estdiamin, estdiamax = extrema(estdiameterfromroach)
+measdiamin, measdiamax = extrema(largerthan10um)
+estCVmin, estCVmax = extrema(estCVfromroach)
+measCVmin, measCVmax = extrema(allmothCV_madepositive)
+myelindiameteraxis = Axis(myelinornot[1,1], xlabel = "Diameter (μm)")
+myelinCVaxis = Axis(myelinornot[2,1], xlabel = "Conduction Velocity (m/s)")
+hist!(myelindiameteraxis, estdiameterfromroach, bins = LinRange(estdiamin, estdiamax, 50), color = :orange, normalization = :probability)
+hist!(myelindiameteraxis, largerthan10um, bins = LinRange(measdiamin,measdiamax, 50), color = :blue, normalization = :probability)
+hist!(myelinCVaxis, allmothCV_madepositive, bins = LinRange(measCVmin, measCVmax, 50), color = :blue, normalization = :probability)
+hist!(myelinCVaxis, estCVfromroach, bins = LinRange(estCVmin, estCVmax, 50), color = :orange, normalization = :probability)
+myelinornot
+# exp.(LinRange(log(measdiamin), log(measdiamax), 15))
+##
 # ATTEMPTING TO ESTIMATE CONDUCTION VELOCITY FROM ELECTRICAL CONSTANTS
 
 #estimating CV-axon diameter curve
